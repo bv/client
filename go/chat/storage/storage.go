@@ -62,6 +62,16 @@ func makeBlockIndexKey(convID chat1.ConversationID, uid gregor1.UID) libkb.DbKey
 	}
 }
 
+func makeBodyHashIndexKey(uid gregor1.UID, bodyHash chat1.Hash) libkb.DbKey {
+	return libkb.DbKey{
+		Typ: libkb.DBChatBodyHashIndex,
+		// In theory this index should be globally unique. The UID here is more
+		// for consistency with other keys, and to make it easier to purge the
+		// local DB by-user if we need to later.
+		Key: fmt.Sprintf("bodyhash:%s:%s", uid, bodyHash),
+	}
+}
+
 func encode(input interface{}) ([]byte, error) {
 	mh := codec.MsgpackHandle{WriteExt: true}
 	var data []byte
@@ -223,6 +233,19 @@ func (s *Storage) Merge(ctx context.Context, convID chat1.ConversationID, uid gr
 	// Update supersededBy pointers
 	if err = s.updateAllSupersededBy(ctx, convID, uid, msgs); err != nil {
 		return s.MaybeNuke(false, err, convID, uid)
+	}
+
+	// Update the body hash index, for detecting replays.
+	for _, msg := range msgs {
+		if msg.IsValid() {
+			validMsg := msg.Valid()
+			bodyHashKey := makeBodyHashIndexKey(uid, validMsg.BodyHash)
+			// Is this use of ConvID correct?
+			bodyHashValue := []byte(fmt.Sprintf("%s:%s", convID, validMsg.ServerHeader.MessageID))
+			// CHECK IT WITH A GET HERE
+			s.G().Log.Error("JACK INSERT", bodyHashKey, bodyHashValue)
+			s.G().LocalChatDb.PutRaw(bodyHashKey, bodyHashValue)
+		}
 	}
 
 	// Update max msg ID if needed
