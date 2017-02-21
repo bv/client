@@ -1,5 +1,8 @@
 ## Keybase [![Build Status](https://travis-ci.org/bv/client.svg?branch=master)](https://travis-ci.org/bv/client)
 
+### Disclaimer
+Bellow is the README from keybase
+
 Hi, and welcome to the Keybase client repo.  All our client apps (macOS, Windows, Linux, iOS, and Android) are being actively developed in this repository. Please, dig around.
 
 ### Warnings
